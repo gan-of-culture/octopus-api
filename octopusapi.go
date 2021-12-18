@@ -58,24 +58,24 @@ type Images []struct {
 	DisplayPrice        float64 `json:"display_price"`
 	DisplayRegularPrice float64 `json:"display_regular_price"`
 	Image               struct {
-		Title                string `json:"title"`
-		Caption              string `json:"caption"`
-		URL                  string `json:"url"`
-		Alt                  string `json:"alt"`
-		Src                  string `json:"src"`
-		Srcset               bool   `json:"srcset"`
-		Sizes                string `json:"sizes"`
-		FullSrc              string `json:"full_src"`
-		FullSrcW             int    `json:"full_src_w"`
-		FullSrcH             int    `json:"full_src_h"`
-		GalleryThumbnailSrc  string `json:"gallery_thumbnail_src"`
-		GalleryThumbnailSrcW int    `json:"gallery_thumbnail_src_w"`
-		GalleryThumbnailSrcH int    `json:"gallery_thumbnail_src_h"`
-		ThumbSrc             string `json:"thumb_src"`
-		ThumbSrcW            int    `json:"thumb_src_w"`
-		ThumbSrcH            int    `json:"thumb_src_h"`
-		SrcW                 int    `json:"src_w"`
-		SrcH                 int    `json:"src_h"`
+		Title                string      `json:"title"`
+		Caption              string      `json:"caption"`
+		URL                  string      `json:"url"`
+		Alt                  string      `json:"alt"`
+		Src                  string      `json:"src"`
+		Srcset               interface{} `json:"srcset"`
+		Sizes                string      `json:"sizes"`
+		FullSrc              string      `json:"full_src"`
+		FullSrcW             int         `json:"full_src_w"`
+		FullSrcH             int         `json:"full_src_h"`
+		GalleryThumbnailSrc  string      `json:"gallery_thumbnail_src"`
+		GalleryThumbnailSrcW int         `json:"gallery_thumbnail_src_w"`
+		GalleryThumbnailSrcH int         `json:"gallery_thumbnail_src_h"`
+		ThumbSrc             string      `json:"thumb_src"`
+		ThumbSrcW            int         `json:"thumb_src_w"`
+		ThumbSrcH            int         `json:"thumb_src_h"`
+		SrcW                 int         `json:"src_w"`
+		SrcH                 int         `json:"src_h"`
 	} `json:"image"`
 	ImageID              int    `json:"image_id"`
 	IsDownloadable       bool   `json:"is_downloadable"`
