@@ -42,6 +42,7 @@ type Product struct {
 	NSFWImage string
 }
 
+// Images structure
 type Images []struct {
 	Attributes struct {
 		AttributePaVariant string `json:"attribute_pa_variant"`
@@ -106,6 +107,7 @@ var reProductURL = regexp.MustCompile(site + `product/[^/]+`)
 var reProductDetails = regexp.MustCompile(`<script type="application/ld\+json">([\s\S]*?)</script>`) //1=JSON with details
 var reImageData = regexp.MustCompile(`\[{&[^"]+`)
 
+// GetProductByURL from cuddlyoctopus.com
 func GetProductByURL(URL string) (*Product, error) {
 	if !reProductURL.MatchString(URL) {
 		return nil, ErrURLParseFailed
