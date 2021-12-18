@@ -1,17 +1,13 @@
 package octopusapi
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"html"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -46,6 +42,59 @@ type Product struct {
 	NSFWImage string
 }
 
+type Images []struct {
+	Attributes struct {
+		AttributePaVariant string `json:"attribute_pa_variant"`
+		AttributePaSize    string `json:"attribute_pa_size"`
+	} `json:"attributes"`
+	AvailabilityHTML  string `json:"availability_html"`
+	BackordersAllowed bool   `json:"backorders_allowed"`
+	Dimensions        struct {
+		Length string `json:"length"`
+		Width  string `json:"width"`
+		Height string `json:"height"`
+	} `json:"dimensions"`
+	DimensionsHTML      string  `json:"dimensions_html"`
+	DisplayPrice        float64 `json:"display_price"`
+	DisplayRegularPrice float64 `json:"display_regular_price"`
+	Image               struct {
+		Title                string `json:"title"`
+		Caption              string `json:"caption"`
+		URL                  string `json:"url"`
+		Alt                  string `json:"alt"`
+		Src                  string `json:"src"`
+		Srcset               bool   `json:"srcset"`
+		Sizes                string `json:"sizes"`
+		FullSrc              string `json:"full_src"`
+		FullSrcW             int    `json:"full_src_w"`
+		FullSrcH             int    `json:"full_src_h"`
+		GalleryThumbnailSrc  string `json:"gallery_thumbnail_src"`
+		GalleryThumbnailSrcW int    `json:"gallery_thumbnail_src_w"`
+		GalleryThumbnailSrcH int    `json:"gallery_thumbnail_src_h"`
+		ThumbSrc             string `json:"thumb_src"`
+		ThumbSrcW            int    `json:"thumb_src_w"`
+		ThumbSrcH            int    `json:"thumb_src_h"`
+		SrcW                 int    `json:"src_w"`
+		SrcH                 int    `json:"src_h"`
+	} `json:"image"`
+	ImageID              int    `json:"image_id"`
+	IsDownloadable       bool   `json:"is_downloadable"`
+	IsInStock            bool   `json:"is_in_stock"`
+	IsPurchasable        bool   `json:"is_purchasable"`
+	IsSoldIndividually   string `json:"is_sold_individually"`
+	IsVirtual            bool   `json:"is_virtual"`
+	MaxQty               string `json:"max_qty"`
+	MinQty               int    `json:"min_qty"`
+	PriceHTML            string `json:"price_html"`
+	Sku                  string `json:"sku"`
+	VariationDescription string `json:"variation_description"`
+	VariationID          int    `json:"variation_id"`
+	VariationIsActive    bool   `json:"variation_is_active"`
+	VariationIsVisible   bool   `json:"variation_is_visible"`
+	Weight               string `json:"weight"`
+	WeightHTML           string `json:"weight_html"`
+}
+
 var defaultHeaders = map[string]string{
 	"Accept":     "application/json, text/plain, */*",
 	"User-Agent": "User-AgentMozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.45",
@@ -55,20 +104,19 @@ const site = "https://cuddlyoctopus.com/"
 
 var reProductURL = regexp.MustCompile(site + `product/[^/]+`)
 var reProductDetails = regexp.MustCompile(`<script type="application/ld\+json">([\s\S]*?)</script>`) //1=JSON with details
-var reImageID = regexp.MustCompile(site + `wp-content/uploads/\d+/\d\d/(\d+)`)                       //1=image ID
-var reNSFWImageFallback = regexp.MustCompile(site + `wp-content/uploads/\d+/\d\d/(\d+-\d+)`)         //2=image ID + part - 919-1 -> 920 for NSFW
+var reImageData = regexp.MustCompile(`\[{&[^"]+`)
 
 func GetProductByURL(URL string) (*Product, error) {
 	if !reProductURL.MatchString(URL) {
 		return nil, ErrURLParseFailed
 	}
 
-	htmlString, err := get(URL)
+	htmlData, err := get(URL)
 	if err != nil {
 		return nil, err
 	}
 
-	matchedProductDetails := reProductDetails.FindSubmatch(htmlString)
+	matchedProductDetails := reProductDetails.FindSubmatch(htmlData)
 	if len(matchedProductDetails) == 0 {
 		return nil, ErrProductDetailParseFailed
 	}
@@ -82,30 +130,21 @@ func GetProductByURL(URL string) (*Product, error) {
 	details.Name = html.UnescapeString(details.Name)
 	details.Description = html.UnescapeString(details.Description)
 
-	matchedImageID := reImageID.FindStringSubmatch(details.MainImage)
-	if len(matchedImageID) < 2 {
-		return nil, ErrImageIDParseFailed
-	}
+	matchedImageData := string(reImageData.Find(htmlData))
+	matchedImageData = html.UnescapeString(matchedImageData)
 
-	imageID, err := strconv.Atoi(matchedImageID[1])
+	imgData := Images{}
+	err = json.Unmarshal([]byte(matchedImageData), &imgData)
 	if err != nil {
 		return nil, err
 	}
 
-	details.NSFWImage = strings.Replace(details.MainImage, matchedImageID[1], fmt.Sprint(imageID+1), 1)
-	if bytes.Contains(htmlString, []byte(strings.ReplaceAll(details.NSFWImage, "/", `\/`))) {
-		return details, nil
-	}
-
-	matchedImageURLAlt := reNSFWImageFallback.FindSubmatch(htmlString)
-	if len(matchedImageURLAlt) < 2 {
-		details.NSFWImage = ""
-		return details, nil
-	}
-
-	details.NSFWImage = strings.Replace(details.MainImage, string(matchedImageURLAlt[1]), fmt.Sprint(imageID+1), 1)
-	if !bytes.Contains(htmlString, []byte(strings.ReplaceAll(details.NSFWImage, "/", `\/`))) {
-		details.NSFWImage = ""
+	for _, image := range imgData {
+		if image.Attributes.AttributePaVariant != "r18" {
+			continue
+		}
+		details.NSFWImage = image.Image.Src
+		break
 	}
 
 	return details, nil
