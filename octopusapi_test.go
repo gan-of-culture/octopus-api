@@ -2,7 +2,7 @@ package octopusapi
 
 import "testing"
 
-func TestGetBySCode(t *testing.T) {
+func TestGetProductByURL(t *testing.T) {
 	tests := []struct {
 		Name string
 		URL  string
@@ -13,6 +13,9 @@ func TestGetBySCode(t *testing.T) {
 		}, {
 			Name: "Asuna",
 			URL:  "https://cuddlyoctopus.com/product/asuna/",
+		}, {
+			Name: "Ahri",
+			URL:  "https://cuddlyoctopus.com/product/ahri/",
 		},
 	}
 	for _, tt := range tests {

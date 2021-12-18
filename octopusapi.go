@@ -1,6 +1,7 @@
 package octopusapi
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -52,9 +53,10 @@ var defaultHeaders = map[string]string{
 
 const site = "https://cuddlyoctopus.com/"
 
-var reProductURL = regexp.MustCompile(site + `product/([^/]+)`)
+var reProductURL = regexp.MustCompile(site + `product/[^/]+`)
 var reProductDetails = regexp.MustCompile(`<script type="application/ld\+json">([\s\S]*?)</script>`) //1=JSON with details
 var reImageID = regexp.MustCompile(site + `wp-content/uploads/\d+/\d\d/(\d+)`)                       //1=image ID
+var reNSFWImageFallback = regexp.MustCompile(site + `wp-content/uploads/\d+/\d\d/(\d+-\d+)`)         //2=image ID + part - 919-1 -> 920 for NSFW
 
 func GetProductByURL(URL string) (*Product, error) {
 	if !reProductURL.MatchString(URL) {
@@ -91,6 +93,20 @@ func GetProductByURL(URL string) (*Product, error) {
 	}
 
 	details.NSFWImage = strings.Replace(details.MainImage, matchedImageID[1], fmt.Sprint(imageID+1), 1)
+	if bytes.Contains(htmlString, []byte(strings.ReplaceAll(details.NSFWImage, "/", `\/`))) {
+		return details, nil
+	}
+
+	matchedImageURLAlt := reNSFWImageFallback.FindSubmatch(htmlString)
+	if len(matchedImageURLAlt) < 2 {
+		details.NSFWImage = ""
+		return details, nil
+	}
+
+	details.NSFWImage = strings.Replace(details.MainImage, string(matchedImageURLAlt[1]), fmt.Sprint(imageID+1), 1)
+	if !bytes.Contains(htmlString, []byte(strings.ReplaceAll(details.NSFWImage, "/", `\/`))) {
+		details.NSFWImage = ""
+	}
 
 	return details, nil
 }
